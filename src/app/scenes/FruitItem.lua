@@ -8,8 +8,7 @@ local FruitItem = class("FruitItem",function ( x,y,fruitIndex )
 	return sprite
 end)
 
-function FruitItem:ctor(  )
-	
+function FruitItem:ctor( x,y,fruitIndex )
 end
 
 function FruitItem:setActive( active )

@@ -6,7 +6,7 @@ end)
 
 function PlayScene:ctor()
 	
-	math.newrandomseed() -- 随机种子
+	
 	--init value
 	self.highSorce = 0
 	self.stage = 1
@@ -18,8 +18,8 @@ function PlayScene:ctor()
 	self:initUI()
 
 	-- 棋盘左下角的坐标
-	self.matrixLBX = (display.width-Fruit.getWidth()*self.xCount - (self.xCount - 1)*self.fruitGap)*0.5
-	self.matrixLBY = (display.height - Fruit.getHeight()*self.yCount -(self.yCount-1)*self.fruitGap)*0.5
+	self.matrixLBX = (display.width-FruitItem.getWidth()*self.xCount - (self.xCount - 1)*self.fruitGap)*0.5
+	self.matrixLBY = (display.height - FruitItem.getHeight()*self.yCount -(self.yCount-1)*self.fruitGap)*0.5
 
 	self:addNodeEventListener(cc.NODE_EVENT,function ( event )
 		if event.name == "enterTransitionFinish" then
@@ -50,12 +50,29 @@ function PlayScene:initMartix( )
 	for y=1,self.yCount do
 		for x=1,self.xCount do
 			if 1==y and 2==x then
-				--确保有可能消除的水果	
+				self:createAndDropFruit(x, y, self.matrix[1].fruitIndex)
 			else
-					
+				self:createAndDropFruit(x, y)
 			end
 		end
 	end
+end
+
+function PlayScene:createAndDropFruit(x, y, fruitIndex )
+	local newFruit = FruitItem.new(x,y,fruitIndex)
+	local endPosition = self:postionOfFruit(x, y)-- 最终的位置
+	local startPosition = cc.p(endPosition.x,endPosition.y+display.height*0.5)
+	newFruit:setPosition(startPosition)
+	local speed = startPosition.y/(2*display.height)
+	newFruit:runAction(cc.MoveTo:create(speed, endPosition))
+	self.matrix[(y-1)*self.xCount+x]=newFruit
+	self:addChild(newFruit)
+end
+
+function PlayScene:postionOfFruit(x, y )
+	local px = self.matrixLBX + (FruitItem.getWidth()+self.fruitGap)*(x-1)+FruitItem.getWidth()*0.5
+	local py = self.matrixLBY + (FruitItem.getHeight()+self.fruitGap)*(y-1)+FruitItem.getHeight()*0.5
+	return cc.p(px,py)
 end
 
 

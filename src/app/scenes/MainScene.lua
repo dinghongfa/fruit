@@ -4,6 +4,7 @@ local MainScene = class("MainScene", function()
 end)
 
 function MainScene:ctor()
+	math.newrandomseed() -- 随机种子
 	-- 1.记载精灵帧
 	display.addSpriteFrames("fruit.plist", "fruit.png")
 	-- 2.背景图片
