@@ -15,9 +15,9 @@ function FruitItem:setActive( active )
 	self.isActive = active
 	local frame
 	if active then
-		frame = display.newSpriteFrame("#fruit"..self.fruitIndex.."_2.png")
+		frame = display.newSpriteFrame("fruit"..self.fruitIndex.."_2.png")
 	else
-		frame = display.newSpriteFrame("#fruit"..self.fruitIndex.."_1.png")		 
+		frame = display.newSpriteFrame("fruit"..self.fruitIndex.."_1.png")		 
 	end
 
 	self:setSpriteFrame(frame)
