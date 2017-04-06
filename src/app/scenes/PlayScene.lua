@@ -8,9 +8,14 @@ function PlayScene:ctor()
 	
 	
 	--init value
-	self.highSorce = 0
-	self.stage = 1
-	self.target =123
+	self.highSorce = cc.UserDefault:getInstance():getIntegerForKey("HighScore") -- 最高分数
+	self.stage = cc.UserDefault:getInstance():getIntegerForKey("Stage") -- 当前关卡
+
+	if self.stage == 0  then
+		self.stage  = 1 
+	end
+
+	self.target = self.stage * 200
 	self.curSorce = 0
 	self.xCount = 8 -- 水平方向水果数
 	self.yCount = 8 -- 垂直方向水果数
@@ -30,6 +35,7 @@ function PlayScene:ctor()
 		end
 	end)
 
+	audio.playMusic("music/mainbg.mp3", true)
 
 end 
 
@@ -52,6 +58,18 @@ function PlayScene:initUI()
 		:addTo(self)
 
 	self.activeScoreLabel:setColor(display.COLOR_WHITE)
+
+	--进度条
+	local sliderImages = {
+		bar = "#The_time_axis_Tunnel.png",
+		button = "#The_time_axis_Trolley.png"
+	}
+	self.silderBar = cc.ui.UISlider.new(display.LEFT_TO_RIGHT, sliderImages, {scale9 = false})
+		:setSliderSize(display.width, 125)
+		:setSliderValue(0)
+		:align(display.LEFT_BOTTOM, 0, 0)
+		:addTo(self)	
+	self.silderBar:setTouchEnabled(false)
 end
 
 function PlayScene:initMartix( )
@@ -82,12 +100,27 @@ function PlayScene:createAndDropFruit(x, y, fruitIndex )
 	newFruit:addNodeEventListener(cc.NODE_TOUCH_EVENT, function ( event )
 		if event.name=="ended" then
 			if newFruit.isActive then
+				-- 消除音效
+				local musicIndex = #self.actives
+				if musicIndex<2 then
+					musicIndex = 2
+				end
+				if musicIndex>9 then
+					musicIndex = 9
+				end
+
+				local tmpStr = string.format("music/broken%d.mp3",musicIndex)
+				audio.playSound(tmpStr)
 				self:removeActiveFruits()
 				self:dropFruits()
+				self:checkNextStage()-- 检查是否过关
+
 			else
 				self:inactive()
 				self:activeNeighbor(newFruit)
 				self:showActivesScore()
+				 -- 高亮音效
+				 audio.playSound("music/itemSelect.mp3")
 			end
 		end
 
@@ -100,6 +133,23 @@ function PlayScene:removeActiveFruits( )
 	local fruitScore = self.scoreStart -- 基分
 	for _,fruit in pairs(self.actives) do
 		if fruit then
+			local time = 0.3
+			--爆炸圈
+			local circleSprite = display.newSprite("circle.png")
+				:pos(fruit:getPosition())
+				:addTo(self)
+			circleSprite:setScale(0)
+			circleSprite:runAction(cc.Sequence:create(cc.ScaleTo:create(time,1.0),
+				cc.CallFunc:create(function (  )
+					circleSprite:removeFromParent()
+				end)))
+			-- 爆炸碎片
+			local emitter = cc.ParticleSystemQuad:create("starts.plist")
+			emitter:setPosition(fruit:getPosition())
+			local batch = cc.ParticleBatchNode:createWithTexture(emitter:getTexture())
+			batch:addChild(emitter)
+			self:addChild(batch)
+
 			self.matrix[(fruit.y-1)*self.xCount+fruit.x]=nil
 			fruitScore = fruitScore + self.scoreStep
 			fruit:removeFromParent()
@@ -111,6 +161,12 @@ function PlayScene:removeActiveFruits( )
 	self.highScoreLabel:setString(tostring(self.curSorce))
 	self.activeScoreLabel:setString("")
 	self.activeScore = 0
+
+	--更新进度条
+	local silderValue = self.curSorce/self.target*100
+	if silderValue>100 then silderValue =100 end
+
+	self.silderBar:setSliderValue(silderValue)
 end
 
 
@@ -185,6 +241,56 @@ function PlayScene:postionOfFruit(x, y )
 	local px = self.matrixLBX + (FruitItem.getWidth()+self.fruitGap)*(x-1)+FruitItem.getWidth()*0.5
 	local py = self.matrixLBY + (FruitItem.getHeight()+self.fruitGap)*(y-1)+FruitItem.getHeight()*0.5
 	return cc.p(px,py)
+end
+
+
+function PlayScene:checkNextStage()
+	if self.curSorce < self.target then
+		return
+	end
+
+	-- resultLayer 半透明展示信息
+	local resultLayer = display.newColorLayer(cc.c4b(0,0,0,150))
+	resultLayer:addTo(self)
+	-- 吞噬事件
+	resultLayer:setTouchEnabled(true)
+	resultLayer:addNodeEventListener(cc.NODE_TOUCH_EVENT, function ( event )
+		if event.name == "began" then
+			return true
+		end
+	end)
+
+	-- 更新数据
+	if self.curSorce >= self.highSorce then
+		self.highSorce = self.curSorce
+	end
+	self.stage = self.stage  + 1 
+	self.target = self.target *200
+	-- 存储到文件
+
+	cc.UserDefault:getInstance():setIntegerForKey("HighScore", self.highSorce)
+	cc.UserDefault:getInstance():setIntegerForKey("Stage", self.stage)
+	-- 通关信息
+	display.newTTFLabel({text=string.format("恭喜过关！\n最高得分:%d",self.highSorce),size=60})
+		:pos(display.cx,display.cy+140)
+		:addTo(self)
+	--开始按钮
+	local startBtnImages = {
+		normal = "#startBtn_N.png",
+		pressed = "#startBtn_S.png"
+	}
+
+	cc.ui.UIPushButton.new(startBtnImages, {scale9 = false})
+		:onButtonClicked(function ( event )
+			audio.stopMusic()
+			local mainScene = import("app.scenes.MainScene"):new()
+			display.replaceScene(mainScene,"flipX",0.5)
+		end)
+		:align(display.CENTER, display.cx, display.cy-80)
+		:addTo(resultLayer)
+
+	--通关音效
+	audio.playSound("music/wow.mp3")
 end
 
 

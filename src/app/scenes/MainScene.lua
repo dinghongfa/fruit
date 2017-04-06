@@ -18,8 +18,9 @@ function MainScene:ctor()
 	-- 开始按钮
 	cc.ui.UIPushButton.new(startBtnImages, {scale9 = false})
 		:onButtonClicked(function(event)
+			audio.playSound("music/btnStart.mp3")
 			local playScene = import("app.scenes.PlayScene"):new()
-			display.replaceScene(playScene)
+			display.replaceScene(playScene,"turnOffTiles",0.5)
 
 		end)
 		:align(display.CENTER, display.cx, display.cy-80)
